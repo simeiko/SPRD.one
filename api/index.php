@@ -16,6 +16,6 @@ if(isset($_GET['get']) && $_GET['get'] === 'map') {
 
     require_once 'classes/MapGenerator.php';
 
-    $map = new MapGenerator($rows, $columns, $_GET['players']);
+    $map = new MapGenerator($rows, $columns, $_GET['players']); // Create map
     echo $map->getMap(true); // Display map
 }
