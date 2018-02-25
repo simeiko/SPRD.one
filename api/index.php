@@ -12,10 +12,10 @@ if(isset($_GET['get']) && $_GET['get'] === 'map') {
 
     if($_GET['size'] == 's') { $rows = 6; $columns = 6; } // Small map
     if($_GET['size'] == 'm') { $rows = 10; $columns = 10; } // Medium map
-    if($_GET['size'] == 'l') { $rows = 12; $columns = 12; } // Large map
+    if($_GET['size'] == 'l') { $rows = 12; $columns = 12; } // Large map*/
 
     require_once 'classes/MapGenerator.php';
 
-    $map = new MapGenerator($rows, $columns, $_GET['players']); // Create map
-    echo $map->getMap(true); // Display map
+    $map = new MapGenerator($rows, $columns, $_GET['players']);
+    echo $map->getMap();
 }
