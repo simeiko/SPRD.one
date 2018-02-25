@@ -6,7 +6,7 @@
  * Cell structure: [player_id, power, max_power, left, up_left, up_right, right, bottom_right, bottom_left]
  *
  * @author Valentyn Simeiko
- * @version 1.0
+ * @version 2.0
  */
 class MapGenerator
 {
@@ -28,6 +28,18 @@ class MapGenerator
     /** @var int Cell chance to have a link with another cell */
     private $linkChance = 65;
 
+    /** @var int Default cell max power */
+    private $defaultMaxPower = 8;
+
+    /**
+     * Cell chance to have max power set to $this->increasedMaxPower.
+     * @var array with percentage based on number of links with side cells
+     */
+    private $increasedMaxPowerChance = [0, 10, 10, 5, 5, 5];
+
+    /** @var int Cell increased max power value */
+    private $increasedMaxPower = 12;
+
     /** @var null|array Used to track last random cell row and column. [0] is row, [1] is column */
     private $lastRandomCell;
 
@@ -46,20 +58,21 @@ class MapGenerator
         $this->columns = $columns;
         $this->players = $players;
 
-        // Build map $this->result
+        // Build map: $this->map
         $this->createMap();
         $this->addHoles();
         $this->validate();
         $this->settlePlayers();
+        $this->increaseMaxPower();
     }
 
     /**
      * Get the JSON map for output purposes.
      *
-     * @param bool $compress call $this->compress() function before returning the map
+     * @param bool $compress compress map by $this->compress() function
      * @return string $this->map in JSON format
      */
-    public function getMap(bool $compress = false):string {
+    public function getMap(bool $compress = true):string {
         if($compress) $this->compress();
         return json_encode($this->map);
     }
@@ -101,7 +114,7 @@ class MapGenerator
 
             0, // Power
 
-            8, // Max power
+            $this->defaultMaxPower, // Max power
 
             (int)$links[0], // Left link
 
@@ -160,20 +173,15 @@ class MapGenerator
 
     /**
      * Add random holes to the map.
-     * The for loop will run for total amount of map cells ($this->rows * $this->columns).
      * Unlink side cells from the holes.
+     *
+     * @since 2.0 uses $this->getCell() generator
      */
     private function addHoles() {
-        for($i = 0; $i < $this->rows * $this->columns; $i++) {
+        foreach($this->getCell() as $row => $column) {
             if(!$this->chance($this->holeChance)) continue;
 
-            $cell = &$this->getRandomCell(); // Random cell
-
-            if(!$cell) continue; // If returned value is an empty array
-
-            $row = $this->lastRandomCell[0]; // Get the row of last random cell
-            $column = $this->lastRandomCell[1]; // Get the column of last random cell
-            $cell = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // Clean this cell
+            $this->map[$row][$column] = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // Clean this cell
 
             // Remove links to this cell
             if(isset($this->map[$row][$column-1])) $this->map[$row][$column-1][6] = 0; // left
@@ -218,7 +226,6 @@ class MapGenerator
      * Number of attempts to get a random cell is limited to 10.
      * Tracks last random cell with $this->lastRandomCell field.
      *
-     * @todo maybe remove return by reference; leave only $this->lastRandomCell
      * @return array empty array on failure; cell array on success
      */
     private function &getRandomCell() {
@@ -339,6 +346,8 @@ class MapGenerator
      * 2) If cell is near, but not linked with the "main map part", link it with other cells.
      * 3) Remove everything else that is not linked with "main map part".
      *
+     * @since 2.0 uses $this->getCell() generator
+     *
      * @return bool false if there is no random cell to start; true if function run successfully
      */
     private function validate():bool {
@@ -380,10 +389,8 @@ class MapGenerator
         $visited = $this->buildMapOfUsableCells($this->lastRandomCell[0], $this->lastRandomCell[1]);
 
         // Remove all other cells that aren't accessible
-        for($row = 0 ; $row < $this->rows; $row++) {
-            for($column = 0; $column < $this->columns; $column++) {
-                if(!$visited[$row][$column]) $this->map[$row][$column] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-            }
+        foreach($this->getCell() as $row => $column) {
+            if(!$visited[$row][$column]) $this->map[$row][$column] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
         }
 
         return true;
@@ -398,6 +405,8 @@ class MapGenerator
      *
      * Basically, this function will return array with all cells that can be reached from $startRow and $startColumn.
      *
+     * @since 2.0 uses $this->getCell() generator
+     *
      * @param int $startRow Start cell row
      * @param int $startColumn Start cell column
      * @param bool $emptyCells If true, empty cells will be considered as visited
@@ -407,11 +416,9 @@ class MapGenerator
         // Step 1. Create $visited array
         $visited = [];
 
-        for($row = 0; $row < $this->rows; $row++) {
-            for($column = 0; $column < $this->columns; $column++) {
-                if($emptyCells) {
-                    $visited[$row][] = (bool)!$this->map[$row][$column][2]; // Cells with no max power are visited
-                }
+        foreach($this->getCell() as $row => $column) {
+            if($emptyCells) {
+                $visited[$row][] = (bool)!$this->map[$row][$column][2]; // Cells with no max power are visited
             }
         }
 
@@ -494,21 +501,55 @@ class MapGenerator
     }
 
     /**
-     * Remove false values from end of each cell.
+     * Generator.
+     * Yields each cell from $this->map.
+     *
+     * @since 2.0 was introduced
+     * @return Generator cell row => column
+     */
+    private function getCell() {
+        foreach ($this->map as $row => $rowData) {
+            foreach($rowData as $column => $cell) {
+                yield $row => $column;
+            }
+        }
+    }
+
+    /**
+     * Try to increase cell max power value.
+     * Each cell has a chance to be increased; however, percentage is based on number of links.
+     * Percentage is stated in $this->increasedMaxPowerChance
+     *
+     * @since 2.0 was introduced
+     */
+    private function increaseMaxPower() {
+        foreach($this->getCell() as $row => $column) {
+            if(!$this->map[$row][$column][2]) continue; // Empty cell
+
+            $howManyLinks = count(array_filter($this->getNearCells($row, $column))) - 1;
+
+            // Try to set cell max power to $this->increasedMaxPower
+            if($this->chance( $this->increasedMaxPowerChance[$howManyLinks] )) {
+                $this->map[$row][$column][2] = $this->increasedMaxPower;
+            }
+        }
+    }
+
+    /**
+     * Remove zeros from end of each cell.
      * It reduces the size of map and in the same time increases the load time on the client side.
      * On the client side, the array will be filled up to the normal size.
      *
      * Cell before: [0,0,8,1,1,0,0,0,0]
      * Cell After: [0,0,8,1,1]
      *
-     * @todo remove unnecessary cell links
+     * @since 2.0 uses $this->getCell() generator
      */
     private function compress() {
-        foreach ($this->map as &$row) {
-            foreach($row as &$cell) {
-                while(0 === end($cell)) {
-                    array_pop($cell);
-                }
+        // Remove zeros from end of cell
+        foreach($this->getCell() as $row => $column) {
+            while(0 === end($this->map[$row][$column])) {
+                array_pop($this->map[$row][$column]);
             }
         }
     }
