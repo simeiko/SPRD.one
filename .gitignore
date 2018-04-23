@@ -1,0 +1,9 @@
+# Ignore everything
+
+*
+
+# Except
+
+!/api/index.php
+!/api/classes/MapGenerator.php
+!README.md

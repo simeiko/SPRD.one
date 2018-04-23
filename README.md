@@ -20,5 +20,5 @@ Map is a JSON object that represents an array with rows and cells:
 
 ```PHP
 $map = new MapGenerator(10, 12, 4); // Create a map with 10 rows and 12 cells in each row for 4 players.
-echo $map->getMap(true); // Display map. True parameters enables compression
+echo $map->getMap(true); // Display map. True parameters enables compression (enabled by default).
 ```

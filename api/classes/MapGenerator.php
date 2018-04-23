@@ -4,6 +4,7 @@
  *
  * Generates map for SPRD.one game.
  * Cell structure: [player_id, power, max_power, left, up_left, up_right, right, bottom_right, bottom_left]
+ *                                           --> Here goes links with side cells (bool)
  *
  * @author Valentyn Simeiko
  * @version 2.0
