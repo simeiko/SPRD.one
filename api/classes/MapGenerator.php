@@ -48,9 +48,9 @@ class MapGenerator
      * MapGenerator constructor.
      * Save given parameters; initialize the creation of map.
      *
-     * @param $rows integer amount of rows
-     * @param $columns integer amount of columns in each row
-     * @param $players integer number of players
+     * @param int $rows Amount of rows
+     * @param int $columns Amount of columns in each row
+     * @param int $players Number of players
      */
     public function __construct(int $rows, int $columns, int $players)
     {
@@ -70,10 +70,11 @@ class MapGenerator
     /**
      * Get the JSON map for output purposes.
      *
-     * @param bool $compress compress map by $this->compress() function
-     * @return string $this->map in JSON format
+     * @param bool $compress Compress map by removing trailing zeros from each cell
+     * @return string Ready to use map in JSON format
      */
-    public function getMap(bool $compress = true):string {
+    public function getMap(bool $compress = true):string
+    {
         if($compress) $this->compress();
         return json_encode($this->map);
     }
@@ -81,7 +82,8 @@ class MapGenerator
     /**
      * Fill up $this->map with cells.
      */
-    private function createMap() {
+    private function createMap()
+    {
         for($row = 0; $row < $this->rows; $row++) {
             for($column = 0; $column < $this->columns; $column++) {
                 $this->map[$row][] = $this->createCell(
@@ -101,13 +103,14 @@ class MapGenerator
      * Create cell array with random links to side cells.
      * Parameters are used to indicate the borders of map in order to prevent linking with non-existing cells.
      *
-     * @param bool $left links to left side
-     * @param bool $top links to top side
-     * @param bool $right links to right side
-     * @param bool $bottom links to bottom side
+     * @param bool $left Links to left side
+     * @param bool $top Links to top side
+     * @param bool $right Links to right side
+     * @param bool $bottom Links to bottom side
      * @return array Cell array
      */
-    private function createCell(bool $left = true, bool $top = true, bool $right = true, bool $bottom = true):array {
+    private function createCell(bool $left = true, bool $top = true, bool $right = true, bool $bottom = true):array
+    {
         $links = $this->getCellLinks($left, $top, $right, $bottom);
 
         return [
@@ -136,13 +139,14 @@ class MapGenerator
      * Array where [0] key is a link to left cell.
      * Sides are going clockwise, so link with up left cell has a [1] key.
      *
-     * @param bool $left links to left side
-     * @param bool $top links to top side
-     * @param bool $right links to right side
-     * @param bool $bottom links to bottom side
+     * @param bool $left Links to left side
+     * @param bool $top Links to top side
+     * @param bool $right Links to right side
+     * @param bool $bottom Links to bottom side
      * @return array Links to the side cells
      */
-    private function getCellLinks(bool $left = true, bool $top = true, bool $right = true, bool $bottom = true):array {
+    private function getCellLinks(bool $left = true, bool $top = true, bool $right = true, bool $bottom = true):array
+    {
         $links = array_fill(0, 6, 1); // Create array with sides
 
         // Remove links that go beyond <canvas> element
@@ -178,7 +182,8 @@ class MapGenerator
      *
      * @since 2.0 uses $this->getCell() generator
      */
-    private function addHoles() {
+    private function addHoles()
+    {
         foreach($this->getCell() as $row => $column) {
             if(!$this->chance($this->holeChance)) continue;
 
@@ -210,7 +215,8 @@ class MapGenerator
      *
      * @todo Do not settle players too close
      */
-    private function settlePlayers() {
+    private function settlePlayers()
+    {
         for($i = 1; $i <= $this->players; $i++) {
             $cell = &$this->getRandomCell();
 
@@ -227,7 +233,7 @@ class MapGenerator
      * Number of attempts to get a random cell is limited to 10.
      * Tracks last random cell with $this->lastRandomCell field.
      *
-     * @return array empty array on failure; cell array on success
+     * @return array Empty array on failure; cell array on success
      */
     private function &getRandomCell() {
         try {
@@ -256,12 +262,13 @@ class MapGenerator
      * Select all cells that surround given cell.
      *
      * @todo shorten this function; foreach() side?
-     * @param int $row is a cell row
-     * @param int $column is a cell column
+     * @param int $row Cell row
+     * @param int $column Cell column
      * @param bool $onlyLinked Select only linked cells
-     * @return array with near cells where [0] key is row and [1] key is column
+     * @return array Array with near cells where [0] key is row and [1] key is column
      */
-    private function getNearCells(int $row, int $column, bool $onlyLinked = true) {
+    private function getNearCells(int $row, int $column, bool $onlyLinked = true)
+    {
         $nearCells = array_fill(0, 6, false);
 
         // Left cell
@@ -328,10 +335,11 @@ class MapGenerator
     /**
      * Get the chance based on $percentage.
      *
-     * @param $percentage integer from 0 to 100
+     * @param int $percentage Percentage from 0 to 100
      * @return bool True if random number is less or equals to $percentage
      */
-    private function chance(int $percentage) {
+    private function chance(int $percentage)
+    {
         try {
             return random_int(1, 100) <= $percentage;
         } catch (Exception $e) {
@@ -349,9 +357,10 @@ class MapGenerator
      *
      * @since 2.0 uses $this->getCell() generator
      *
-     * @return bool false if there is no random cell to start; true if function run successfully
+     * @return bool False if there is no random cell to start; true if function run successfully
      */
-    private function validate():bool {
+    private function validate():bool
+    {
         if(!$this->getRandomCell()) return false; // If there is no random cell
 
         // Create $visited array with last random cell position
@@ -413,7 +422,8 @@ class MapGenerator
      * @param bool $emptyCells If true, empty cells will be considered as visited
      * @return array|bool false if start cell doesn't have any near cell; otherwise will return an array
      */
-    private function buildMapOfUsableCells(int $startRow, int $startColumn, bool $emptyCells = true) {
+    private function buildMapOfUsableCells(int $startRow, int $startColumn, bool $emptyCells = true)
+    {
         // Step 1. Create $visited array
         $visited = [];
 
@@ -460,13 +470,14 @@ class MapGenerator
     /**
      * Establish connection between cell 1 and cell 2.
      *
-     * @param int $row1 cell 1 row
-     * @param int $column1 cell 1 column
-     * @param int $row2 cell 2 row
-     * @param int $column2 cell 2 column
-     * @return bool false if cells don't stand near
+     * @param int $row1 Cell 1 row
+     * @param int $column1 Cell 1 column
+     * @param int $row2 Cell 2 row
+     * @param int $column2 Cell 2 column
+     * @return bool False if cells don't stand near
      */
-    private function linkTwoCells(int $row1, int $column1, int $row2, int $column2):bool {
+    private function linkTwoCells(int $row1, int $column1, int $row2, int $column2):bool
+    {
         if($row1 - $row2 < -1 || $row1 - $row2 > 1) return false;
         if($column1 - $column2 < -1 || $column1 - $column2 > 1) return false;
 
@@ -506,9 +517,10 @@ class MapGenerator
      * Yields each cell from $this->map.
      *
      * @since 2.0 was introduced
-     * @return Generator cell row => column
+     * @return Generator Cell row => column
      */
-    private function getCell() {
+    private function getCell()
+    {
         foreach ($this->map as $row => $rowData) {
             foreach($rowData as $column => $cell) {
                 yield $row => $column;
@@ -523,7 +535,8 @@ class MapGenerator
      *
      * @since 2.0 was introduced
      */
-    private function increaseMaxPower() {
+    private function increaseMaxPower()
+    {
         foreach($this->getCell() as $row => $column) {
             if(!$this->map[$row][$column][2]) continue; // Empty cell
 
@@ -538,7 +551,7 @@ class MapGenerator
 
     /**
      * Remove zeros from end of each cell.
-     * It reduces the size of map and in the same time increases the load time on the client side.
+     * Reduces the size of map and in the same time increases the load time on the client side.
      * On the client side, the array will be filled up to the normal size.
      *
      * Cell before: [0,0,8,1,1,0,0,0,0]
@@ -546,7 +559,8 @@ class MapGenerator
      *
      * @since 2.0 uses $this->getCell() generator
      */
-    private function compress() {
+    private function compress()
+    {
         // Remove zeros from end of cell
         foreach($this->getCell() as $row => $column) {
             while(0 === end($this->map[$row][$column])) {
